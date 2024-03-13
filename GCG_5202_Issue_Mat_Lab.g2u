@@ -1,0 +1,461 @@
+Program.Sub.ScreenSU.Start
+Gui.Form_IssueMat/Lab..Create
+Gui.Form_IssueMat/Lab..Caption("Feedback File Issue Material/Labor")
+Gui.Form_IssueMat/Lab..Size(15360,10695)
+Gui.Form_IssueMat/Lab..MinX(0)
+Gui.Form_IssueMat/Lab..MinY(0)
+Gui.Form_IssueMat/Lab..Position(0,0)
+Gui.Form_IssueMat/Lab..BackColor(-2147483633)
+Gui.Form_IssueMat/Lab..MousePointer(0)
+Gui.Form_IssueMat/Lab..Event(UnLoad,Form_IssueMat/Lab_UnLoad)
+Gui.Form_IssueMat/Lab.GsGridControlFeedback.Create(GsGridControl)
+Gui.Form_IssueMat/Lab.GsGridControlFeedback.Size(15090,9285)
+Gui.Form_IssueMat/Lab.GsGridControlFeedback.Position(45,570)
+Gui.Form_IssueMat/Lab.GsGridControlFeedback.Event(RowCellClick,GsGridControlFeedback_RowCellClick)
+Gui.Form_IssueMat/Lab.cmdComplete.Create(Button)
+Gui.Form_IssueMat/Lab.cmdComplete.Size(1005,375)
+Gui.Form_IssueMat/Lab.cmdComplete.Position(105,9945)
+Gui.Form_IssueMat/Lab.cmdComplete.Caption("Complete")
+Gui.Form_IssueMat/Lab.cmdComplete.Event(Click,cmdComplete_Click)
+Gui.Form_IssueMat/Lab.lvwSigmaFile.Create(ListView)
+Gui.Form_IssueMat/Lab.lvwSigmaFile.Size(6495,375)
+Gui.Form_IssueMat/Lab.lvwSigmaFile.Position(60,90)
+Gui.Form_IssueMat/Lab.lvwSigmaFile.BorderStyle(1)
+Gui.Form_IssueMat/Lab.lvwSigmaFile.View(0)
+Gui.Form_IssueMat/Lab.lvwSigmaFile.Event(OLEDragDrop,lvwSigmaFile_OLEDragDrop)
+Gui.Form_IssueMat/Lab.cmdSigmaFile.Create(Button)
+Gui.Form_IssueMat/Lab.cmdSigmaFile.Size(435,375)
+Gui.Form_IssueMat/Lab.cmdSigmaFile.Position(6615,90)
+Gui.Form_IssueMat/Lab.cmdSigmaFile.Caption("^")
+Gui.Form_IssueMat/Lab.cmdSigmaFile.Event(Click,cmdSigmaFile_Click)
+Program.Sub.ScreenSU.End
+
+Program.Sub.Preflight.Start
+V.Global.sCompleteFile.Declare(String,"")
+V.Global.sFile.Declare(String,"")
+Program.Sub.Preflight.End
+
+Program.Sub.Main.Start
+F.Intrinsic.Control.Try
+	V.Local.sError.Declare(String,"")
+	V.Local.bRet.Declare(Boolean,False)
+	
+	F.Intrinsic.String.Build("{0}\SNLIC.dat",V.Caller.FilesDir,V.Global.sCompleteFile)
+	
+	F.Intrinsic.File.Exists(V.Global.sCompleteFile,V.Local.bRet)
+	F.Intrinsic.Control.If(V.Local.bRet)
+		F.Intrinsic.Control.CallSub(Build_Empty_Datatable)
+		F.Intrinsic.Control.CallSub(Set_Properties)
+		F.Intrinsic.Control.CallSub(Set_Anchors)
+	
+		Gui.Form_IssueMat/Lab..Show
+	F.Intrinsic.Control.Else
+		F.Intrinsic.UI.Msgbox("SNLIC.dat File missing in Files Dir.....")
+		F.Intrinsic.Control.End
+
+	F.Intrinsic.Control.EndIf
+	
+	F.Intrinsic.Control.ExitSub
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.If(V.Ambient.ErrorNumber,<>,0)
+		F.Intrinsic.String.Build("Project: {0}{1}Subroutine: {2}{1}Error Occurred {3} with description {4}","GCG_5202_Issue_Mat_Lab.g2u",V.Ambient.NewLine,V.Ambient.CurrentSubroutine,V.Ambient.ErrorNumber,V.Ambient.ErrorDescription,V.Local.sError)
+		F.Intrinsic.UI.Msgbox(V.Local.sError)
+		F.Intrinsic.Control.CallSub(Form_IssueMat/Lab_Unload)
+	F.Intrinsic.Control.EndIf
+Function.Intrinsic.Control.EndTry
+Program.Sub.Main.End
+
+Program.Sub.Form_IssueMat/Lab_UnLoad.Start
+F.Intrinsic.Control.Try
+	V.Local.sError.Declare(String,"")
+
+	F.Intrinsic.Control.If(V.ODBC.Connection!Con.State,=,1)
+		F.ODBC.Connection!Con.Close
+	F.Intrinsic.Control.EndIf
+	
+	F.Intrinsic.Control.End
+
+	
+	F.Intrinsic.Control.ExitSub
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.If(V.Ambient.ErrorNumber,<>,0)
+		F.Intrinsic.String.Build("Project: {0}{1}Subroutine: {2}{1}Error Occurred {3} with description {4}","GCG_5202_Issue_Mat_Lab.g2u",V.Ambient.NewLine,V.Ambient.CurrentSubroutine,V.Ambient.ErrorNumber,V.Ambient.ErrorDescription,V.Local.sError)
+		F.Intrinsic.UI.Msgbox(V.Local.sError)
+		F.Intrinsic.Control.End
+
+	F.Intrinsic.Control.EndIf
+Function.Intrinsic.Control.EndTry
+Program.Sub.Form_IssueMat/Lab_UnLoad.End
+
+Program.Sub.lvwSigmaFile_OLEDragDrop.Start
+F.Intrinsic.Control.Try
+	V.Local.sError.Declare(String,"")
+	V.Local.sTemp.Declare(String,"")
+	
+	F.Intrinsic.String.Split(V.Args.Files,"*!*",V.Local.sTemp)
+	F.Intrinsic.Control.If(V.Local.sTemp.UBound,=,0)
+		F.Intrinsic.String.Split(V.Args.Files,".",V.Local.sTemp)
+		F.Intrinsic.Control.If(V.Local.sTemp(V.Local.sTemp.UBound).Ucase,=,"CSV")
+			'passing file location when user drops file in list view
+			F.Intrinsic.Control.CallSub(Process_File,"File",V.Args.Files)
+		F.Intrinsic.Control.Else	
+			F.Intrinsic.UI.Msgbox("Only CSV Files Can be Processed.")
+		F.Intrinsic.Control.EndIf
+	F.Intrinsic.Control.Else
+		F.Intrinsic.UI.Msgbox("Only one file can be Processed.  Only drag in one CSV file")
+	F.Intrinsic.Control.EndIf
+	
+	F.Intrinsic.Control.ExitSub
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.If(V.Ambient.ErrorNumber,<>,0)
+		F.Intrinsic.String.Build("Project: {0}{1}Subroutine: {2}{1}Error Occurred {3} with description {4}","GCG_5202_Issue_Mat_Lab.g2u",V.Ambient.NewLine,V.Ambient.CurrentSubroutine,V.Ambient.ErrorNumber,V.Ambient.ErrorDescription,V.Local.sError)
+		F.Intrinsic.UI.Msgbox(V.Local.sError)
+		F.Intrinsic.Control.CallSub(Form_IssueMat/Lab_Unload)
+	F.Intrinsic.Control.EndIf
+Function.Intrinsic.Control.EndTry
+Program.Sub.lvwSigmaFile_OLEDragDrop.End
+
+Program.Sub.cmdSigmaFile_Click.Start
+F.Intrinsic.Control.Try
+	V.Local.sError.Declare(String,"")
+	V.Local.sRet.Declare(String,"")
+	
+	'when selecting from the browser only show csv files
+	F.Intrinsic.UI.ShowOpenFileDialog("","CSV [.csv]|*.csv","",V.Local.sRet)
+	'checking to see if a file was chosen
+	F.Intrinsic.Control.If(V.Local.sRet,<>,V.Ambient.Cancel)
+		'passing file location when user drops file in list view
+		F.Intrinsic.Control.CallSub(Process_File,"File",V.Local.sRet)
+	F.Intrinsic.Control.EndIf
+
+	F.Intrinsic.Control.ExitSub
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.If(V.Ambient.ErrorNumber,<>,0)
+		F.Intrinsic.String.Build("Project: {0}{1}Subroutine: {2}{1}Error Occurred {3} with description {4}","GCG_5202_Issue_Mat_Lab.g2u",V.Ambient.NewLine,V.Ambient.CurrentSubroutine,V.Ambient.ErrorNumber,V.Ambient.ErrorDescription,V.Local.sError)
+		F.Intrinsic.UI.Msgbox(V.Local.sError)
+		F.Intrinsic.Control.CallSub(Form_IssueMat/Lab_Unload)
+	F.Intrinsic.Control.EndIf
+Function.Intrinsic.Control.EndTry
+Program.Sub.cmdSigmaFile_Click.End
+
+Program.Sub.Process_File.Start
+F.Intrinsic.Control.Try
+	V.Local.sError.Declare(String,"")
+	V.Local.sReturn.Declare(String,"")
+	V.Local.sRows.Declare(String,"")
+	V.Local.sValues.Declare(String,"")
+	V.Local.i.Declare(Long,0)
+	V.Local.fTotalArea.Declare(Float,0)
+	V.Local.fTotalTime.Declare(Float,0)
+	V.Local.sJob.Declare(String,"")
+	V.Local.sSuffix.Declare(String,"")
+	V.Local.sSeq.Declare(String,"")
+	V.Local.fEAAmount.Declare(Float,0)
+	V.Local.sSql.Declare(String,"")
+	V.Local.sTemp.Declare(String,"")
+	
+	V.Global.sFile.Set(V.Args.File)
+	
+	F.Intrinsic.File.File2String(V.Args.File,V.Local.sReturn)
+	
+	F.Intrinsic.String.Split(V.Local.sReturn,V.Ambient.NewLine,V.Local.sRows)
+	
+	F.Data.DataTable.DeleteRow("Sigma")
+	
+	F.Data.DataTable.AcceptChanges("Sigma")
+	
+	Gui.Form_IssueMat/Lab.GsGridControlFeedback.SuspendLayout()
+	
+	F.ODBC.Connection!Con.OpenCompanyConnection
+	
+	F.Intrinsic.Control.For(V.Local.i,1,V.Local.sRows.UBound,1)
+		F.Intrinsic.String.Split(V.Local.sRows(V.Local.i),",",V.Local.sValues)
+		V.Local.sValues.RedimPreserve(0,36)
+		F.Intrinsic.Control.If(V.Local.sValues(0).Trim,<>,"")
+			F.Intrinsic.Math.Mult(V.Local.sValues(4).Float,V.Local.sValues(6).Float,V.Local.fTotalArea)
+			F.Intrinsic.Math.Mult(V.Local.sValues(4).Float,V.Local.sValues(5).Float,V.Local.fTotalTime)
+			F.Intrinsic.String.Build("Select length * width as EAAmount From V_Inventory_Mst2 Where Part = '{0}'",V.Local.sValues(32).Trim,V.Local.sSql)
+			F.ODBC.Connection!Con.ExecuteAndReturn(V.Local.sSql,V.Local.sTemp)
+			F.Intrinsic.Control.If(V.Local.sTemp.Trim,=,"")
+				V.Local.sTemp.Set(0)
+			F.Intrinsic.Control.EndIf
+			F.Intrinsic.Math.Div(V.Local.sTemp.Float,V.Local.sValues(6).Float,V.Local.fEAAmount)
+			F.Intrinsic.String.Split(V.Local.sValues(0),":",V.Local.sJob)
+			V.Local.sJob.RedimPreserve(0,1)
+			V.Local.sSeq.Set(V.Local.sJob(1))
+			V.Local.sJob.RedimPreserve(0,0)
+			F.Intrinsic.String.Split(V.Local.sJob,"-",V.Local.sJob)
+			V.Local.sJob.RedimPreserve(0,1)
+			V.Local.sSuffix.Set(V.Local.sJob(1))
+			V.Local.sJob.RedimPreserve(0,0)
+			
+			F.Data.DataTable.AddRow("Sigma","Programnumber",V.Local.sValues(1).Trim,"Job",V.Local.sJob,"Suffix",V.Local.sSuffix,"Sequence",V.Local.sSeq,"PartNumber",V.Local.sValues(1).Trim,"Material",V.Local.sValues(32).Trim,"Machine",V.Local.sValues(10).Trim,"EAAMOUNT",V.Local.fEAAmount,"NESTEDWEIGHTOTALLBS",V.Local.sValues(7).Float,"#Partscut",V.Local.sValues(4).Float,"AreaPerPart",V.Local.sValues(6).Float,"TotalArea",V.Local.fTotalArea,"CutTimePerPart",V.Local.sValues(5),"TotalTime",V.Local.fTotalTime)
+		F.Intrinsic.Control.EndIf
+	F.Intrinsic.Control.Next(V.Local.i)
+
+	F.ODBC.Connection!con.Close
+	
+	Gui.Form_IssueMat/Lab.GsGridControlFeedback.ResumeLayout()
+	
+	F.Intrinsic.Control.ExitSub
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.If(V.Ambient.ErrorNumber,<>,0)
+		F.Intrinsic.String.Build("Project: {0}{1}Subroutine: {2}{1}Error Occurred {3} with description {4}","GCG_5202_Issue_Mat_Lab.g2u",V.Ambient.NewLine,V.Ambient.CurrentSubroutine,V.Ambient.ErrorNumber,V.Ambient.ErrorDescription,V.Local.sError)
+		F.Intrinsic.UI.Msgbox(V.Local.sError)
+		F.Intrinsic.Control.CallSub(Form_IssueMat/Lab_Unload)
+	F.Intrinsic.Control.EndIf
+Function.Intrinsic.Control.EndTry
+Program.Sub.Process_File.End
+
+Program.Sub.Build_Empty_Datatable.Start
+F.Intrinsic.Control.Try
+	V.Local.sError.Declare(String,"")
+	V.Local.sCol.Declare(String,0)
+	V.Local.sDataTypes.Declare(String,"")
+	V.Local.sData.Declare(String,"")
+	
+	V.Local.sCol.Set("PROGRAMNUMBER*!*JOB*!*SUFFIX*!*SEQUENCE*!*PARTNUMBER*!*MATERIAL*!*MACHINE*!*#PARTSCUT*!*EAAMOUNT*!*NESTEDWEIGHTOTALLBS*!*AREAPERPART*!*TOTALAREA*!*CUTTIMEPERPART*!*TOTALTIME*!*ISSUEMATERIALBUTTON")
+	V.Local.sDataTypes.Set("String*!*String*!*String*!*String*!*String*!*String*!*String*!*Float*!*Float*!*Float*!*Float*!*Float*!*Float*!*Float*!*String")
+	V.Local.sData.Set("String*!*String*!*String*!*String*!*String*!*String*!*String*!*0*!*0*!*0*!*0*!*0*!*0*!*0*!*String")
+	
+	F.Data.DataTable.CreateFromString("Sigma",V.Local.sData,V.Local.sCol,V.Local.sDataTypes,"*!*","@!@",True)
+	
+	F.Data.DataTable.DeleteRow("Sigma")
+	
+	F.Data.DataTable.AcceptChanges("Sigma")
+	
+	F.Intrinsic.Control.ExitSub
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.If(V.Ambient.ErrorNumber,<>,0)
+		F.Intrinsic.String.Build("Project: {0}{1}Subroutine: {2}{1}Error Occurred {3} with description {4}","GCG_5202_Issue_Mat_Lab.g2u",V.Ambient.NewLine,V.Ambient.CurrentSubroutine,V.Ambient.ErrorNumber,V.Ambient.ErrorDescription,V.Local.sError)
+		F.Intrinsic.UI.Msgbox(V.Local.sError)
+		F.Intrinsic.Control.CallSub(Form_IssueMat/Lab_Unload)
+	F.Intrinsic.Control.EndIf
+Function.Intrinsic.Control.EndTry
+Program.Sub.Build_Empty_Datatable.End
+
+Program.Sub.Set_Properties.Start
+F.Intrinsic.Control.Try
+	V.Local.sError.Declare(String,"")
+	
+	Gui.Form_IssueMat/Lab.GsGridControlFeedback.AddGridviewFromDatatable("Sigma","Sigma")
+	
+	Gui.Form_IssueMat/Lab.GsGridControlFeedback.SetGridviewProperty("Sigma","ReadOnly",True)
+	Gui.Form_IssueMat/Lab.GsGridControlFeedback.SetGridviewProperty("Sigma","Editable",False)
+	
+	Gui.Form_IssueMat/Lab.GsGridControlFeedback.ColumnEdit("Sigma","IssueMaterialButton","EditorButton","Issue Material")
+	
+	Gui.Form_IssueMat/Lab.GsGridControlFeedback.MainView("Sigma")
+	
+	F.Intrinsic.Control.ExitSub
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.If(V.Ambient.ErrorNumber,<>,0)
+		F.Intrinsic.String.Build("Project: {0}{1}Subroutine: {2}{1}Error Occurred {3} with description {4}","GCG_5202_Issue_Mat_Lab.g2u",V.Ambient.NewLine,V.Ambient.CurrentSubroutine,V.Ambient.ErrorNumber,V.Ambient.ErrorDescription,V.Local.sError)
+		F.Intrinsic.UI.Msgbox(V.Local.sError)
+		F.Intrinsic.Control.CallSub(Form_IssueMat/Lab_Unload)
+	F.Intrinsic.Control.EndIf
+Function.Intrinsic.Control.EndTry
+Program.Sub.Set_Properties.End
+
+Program.Sub.Set_Anchors.Start
+F.Intrinsic.Control.Try
+	V.Local.sError.Declare(String,"")
+	
+	Gui.Form_IssueMat/Lab.lvwSigmaFile.Anchor(5)
+	Gui.Form_IssueMat/Lab.cmdSigmaFile.Anchor(5)
+	Gui.Form_IssueMat/Lab.GsGridControlFeedback.Anchor(15)
+	Gui.Form_IssueMat/Lab.cmdComplete.Anchor(6)
+	
+	F.Intrinsic.Control.ExitSub
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.If(V.Ambient.ErrorNumber,<>,0)
+		F.Intrinsic.String.Build("Project: {0}{1}Subroutine: {2}{1}Error Occurred {3} with description {4}","GCG_5202_Issue_Mat_Lab.g2u",V.Ambient.NewLine,V.Ambient.CurrentSubroutine,V.Ambient.ErrorNumber,V.Ambient.ErrorDescription,V.Local.sError)
+		F.Intrinsic.UI.Msgbox(V.Local.sError)
+		F.Intrinsic.Control.CallSub(Form_IssueMat/Lab_Unload)
+	F.Intrinsic.Control.EndIf
+Function.Intrinsic.Control.EndTry
+Program.Sub.Set_Anchors.End
+
+Program.Sub.Issue_Material.Start
+F.Intrinsic.Control.Try
+	V.Local.sError.Declare(String,"")
+	V.Local.sTemp.Declare(String,"")
+	V.Local.sSql.Declare(String,"")
+	V.Local.sBegTime.Declare(String,"")
+	V.Local.sEndTime.Declare(String,"")
+	
+	F.Intrinsic.String.Build("{0}!*!{1}!*! !*! !*! !*! !*! ",V.DataTable.Sigma(V.Args.RowIndex).Job!FieldValTrim,V.DataTable.Sigma(V.Args.RowIndex).Suffix!FieldValTrim,V.Local.sTemp)
+
+	F.Global.General.CallWrapperSync(450150,V.Local.sTemp)
+	
+	F.Intrinsic.Date.DateAdd("N",-1,V.Ambient.Time,V.Local.sBegTime)
+	V.Local.sEndTime.Set(V.Ambient.Time)
+	
+	F.Intrinsic.String.Format(V.Local.sBegTime,"H:mm:ss",V.Local.sBegTime)
+	F.Intrinsic.String.Format(V.Local.sEndTime,"H:mm:ss",V.Local.sEndTime)
+	
+	F.Intrinsic.String.Build("Select Job From V_Job_Detail Where Job = '{0}' and Suffix = '{1}' and Date_Last_chg = '{2}' and Time_Last_Chg between '{3}' and '{4}'",V.DataTable.Sigma(V.Args.RowIndex).Job!FieldValTrim,V.DataTable.Sigma(V.Args.RowIndex).Suffix!FieldValTrim,V.Ambient.Date.PervasiveDate,V.Local.sBegTime,V.Local.sEndTime,V.Local.sSql)
+	F.ODBC.Connection!Con.OpenCompanyConnection
+	F.ODBC.Connection!Con.OpenLocalRecordSetRO("rst",V.Local.sSql)
+	F.Intrinsic.Control.If(V.ODBC.Con!rst.EOF)
+		F.Intrinsic.Variable.AddRV("ProcessLabor","False")
+	F.Intrinsic.Control.Else
+		'F.Global.General.CallWrapperSync(50,"JB0057")
+		F.Intrinsic.Variable.AddRV("ProcessLabor","True")
+	F.Intrinsic.Control.EndIf
+	
+	F.ODBC.Connection!Con.Close
+	
+	F.Intrinsic.Control.ExitSub
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.If(V.Ambient.ErrorNumber,<>,0)
+		F.Intrinsic.String.Build("Project: {0}{1}Subroutine: {2}{1}Error Occurred {3} with description {4}","GCG_5202_Issue_Mat_Lab.g2u",V.Ambient.NewLine,V.Ambient.CurrentSubroutine,V.Ambient.ErrorNumber,V.Ambient.ErrorDescription,V.Local.sError)
+		F.Intrinsic.UI.Msgbox(V.Local.sError)
+		F.Intrinsic.Control.CallSub(Form_IssueMat/Lab_Unload)
+	F.Intrinsic.Control.EndIf
+Function.Intrinsic.Control.EndTry
+Program.Sub.Issue_Material.End
+
+Program.Sub.Issue_Labor.Start
+F.Intrinsic.Control.Try
+	V.Local.sError.Declare(String,"")
+	V.Local.sTemp.Declare(String,"")
+	V.Local.sMOPEN.Declare(String,"")
+	V.Local.sHold.Declare(String,"")
+	v.Local.sQty.Declare(String,"")
+	
+	F.Intrinsic.UI.InvokeWaitDialog("Uploading Labor................")
+	
+	F.Intrinsic.String.Format(V.Ambient.Date,"mmddyy",V.Local.sHold)
+	
+	F.Intrinsic.String.Format(V.DataTable.Sigma(V.Args.RowIndex).TotalTime!FieldVal,"#0.00",V.Local.sQty)
+	F.Intrinsic.String.Build("{0}{6}99999{6}{1}{6}{2}{6}{3}{6}{4}{6}{5}{6}Y{6}D{6}{6}{6}R{6}0{6}{6}",V.Local.sHold,V.DataTable.Sigma(V.Args.RowIndex).Job!FieldValTrim,V.DataTable.Sigma(V.Args.RowIndex).Suffix!FieldValTrim,V.DataTable.Sigma(V.Args.RowIndex).Sequence!FieldValTrim,V.DataTable.Sigma(V.Args.RowIndex).Machine!FieldValTrim,V.Local.sQty,V.Ambient.Tab,V.Local.sTemp)
+	
+	F.Intrinsic.String.Build("{0}\{1}{2}MOPEN.txt",V.Caller.FilesDir,V.Caller.CompanyCode,V.Caller.Terminal,V.Local.sMOPEN)
+	
+	f.Intrinsic.File.String2File(V.Local.sMOPEN,V.Local.sTemp)
+	
+	'Now we can Issue the lines.
+	F.Intrinsic.String.Build("{0}{1}MOPEN.txt",V.Caller.CompanyCode,V.Caller.Terminal,V.Local.sMOPEN)
+	
+	F.Intrinsic.Task.LaunchGSSSync("JB0455","-c",V.Local.sMOPEN)
+	
+	Gui.Form_IssueMat/Lab.GsGridControlFeedback.SetRowAppearance("Sigma",V.Args.RowIndex,"backcolor","#64fd64")
+	
+	Gui.Form_IssueMat/Lab.GsGridControlFeedback.MainView("Sigma")
+	
+	F.Intrinsic.UI.CloseWaitDialog
+	
+	F.Intrinsic.Control.ExitSub
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.If(V.Ambient.ErrorNumber,<>,0)
+		F.Intrinsic.String.Build("Project: {0}{1}Subroutine: {2}{1}Error Occurred {3} with description {4}","GCG_5202_Issue_Mat_Lab.g2u",V.Ambient.NewLine,V.Ambient.CurrentSubroutine,V.Ambient.ErrorNumber,V.Ambient.ErrorDescription,V.Local.sError)
+		F.Intrinsic.UI.Msgbox(V.Local.sError)
+		F.Intrinsic.Control.CallSub(Form_IssueMat/Lab_Unload)
+	F.Intrinsic.Control.EndIf
+Function.Intrinsic.Control.EndTry
+Program.Sub.Issue_Labor.End
+
+Program.Sub.GsGridControlFeedback_RowCellClick.Start
+F.Intrinsic.Control.Try
+	V.Local.sError.Declare(String,"")
+	V.Local.sMsg.Declare(String,"")
+	
+	Gui.Form_IssueMat/Lab..Enabled(False)
+	
+	F.Intrinsic.Control.If(V.Args.Column.UCase,=,"ISSUEMATERIALBUTTON")
+		F.Intrinsic.Control.CallSub(Issue_Material,"RowIndex",V.Args.RowIndex)
+		F.Intrinsic.Control.If(V.Args.ProcessLabor.UCase,=,"TRUE")
+			F.Intrinsic.Control.CallSub(Issue_Labor,"RowIndex",V.Args.RowIndex)
+		F.Intrinsic.Control.Else
+			F.Intrinsic.String.Build("Labor for Job {0} Suffix {1} will not be processed.  To Process Labor click Issue Material Button for Row and Issue Material.",V.DataTable.Sigma(V.Args.RowIndex).Job!FieldValTrim,V.DataTable.Sigma(V.Args.RowIndex).Suffix!FieldValTrim,V.Local.sMsg)
+			F.Intrinsic.UI.Msgbox(V.Local.sMsg)
+		F.Intrinsic.Control.EndIf
+	F.Intrinsic.Control.EndIf
+	gui.Form_IssueMat/Lab..AlwaysOnTop(True)	
+	gui.Form_IssueMat/Lab..AlwaysOnTop(False)	
+	Gui.Form_IssueMat/Lab..Enabled(True)
+	
+	F.Intrinsic.Control.ExitSub
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.If(V.Ambient.ErrorNumber,<>,0)
+		F.Intrinsic.String.Build("Project: {0}{1}Subroutine: {2}{1}Error Occurred {3} with description {4}","GCG_5202_Issue_Mat_Lab.g2u",V.Ambient.NewLine,V.Ambient.CurrentSubroutine,V.Ambient.ErrorNumber,V.Ambient.ErrorDescription,V.Local.sError)
+		F.Intrinsic.UI.Msgbox(V.Local.sError)
+		F.Intrinsic.Control.CallSub(Form_IssueMat/Lab_Unload)
+	F.Intrinsic.Control.EndIf
+Function.Intrinsic.Control.EndTry
+Program.Sub.GsGridControlFeedback_RowCellClick.End
+
+Program.Sub.cmdComplete_Click.Start
+F.Intrinsic.Control.Try
+	V.Local.sError.Declare(String,"")	
+	V.Local.sTemp.Declare(String,"")
+	V.Local.sMoveFileLoc.Declare(String,"")
+	V.Local.i.Declare(Long,0)
+	V.Local.sMsg.Declare(String,"")
+	V.Local.sFileName.Declare(String,"")
+	V.Local.sCurLoc.Declare(String,"")
+	V.Local.sTemp2.Declare(String,"")
+	V.Local.iRet.Declare(Long,0)
+	V.Local.iCount.Declare(Long,0)
+
+	F.Intrinsic.String.Split(V.Global.sFile,"\",V.Local.sFileName)
+	
+	V.Local.sFileName.Set(V.Local.sFileName(V.Local.sFileName.UBound))
+	V.Local.sFileName.RedimPreserve(0,0)
+	
+	F.Intrinsic.String.Replace(V.Global.sFile,V.Local.sFileName,"",V.Local.sCurLoc)
+	
+	F.Intrinsic.File.File2String(V.Global.sCompleteFile,V.Local.sTemp)
+	
+	F.Intrinsic.String.Split(V.Local.sTemp,V.Ambient.NewLine,V.Local.sTemp)
+	
+	F.Intrinsic.Control.For(V.Local.i,0,V.Local.sTemp.UBound,1)
+		F.Intrinsic.String.Split(V.Local.sTemp(V.Local.i),"::",V.Local.sTemp2)
+		F.Intrinsic.Control.If(V.Local.sTemp2(0).Ucase,=,"COMPLETE")
+			F.Intrinsic.String.Split(V.Local.sTemp(V.Local.i),"::",V.Local.sMoveFileLoc)
+			F.Intrinsic.Control.If(V.Local.sMoveFileLoc.UBound,=,1)
+				F.Intrinsic.Control.If(V.Local.sMoveFileLoc(1).Right1,=,"\")
+					F.Intrinsic.String.Build("{0}Processed\{1}",V.Local.sMoveFileLoc(1),V.Local.sFileName,V.Local.sFileName)
+				F.Intrinsic.Control.Else
+					F.Intrinsic.String.Build("{0}\Processed\{1}",V.Local.sMoveFileLoc(1),V.Local.sFileName,V.Local.sFileName)
+				F.Intrinsic.Control.EndIf
+				F.Intrinsic.File.MoveFile(V.Global.sFile,V.Local.sFileName,V.Local.iRet)
+				F.Intrinsic.Control.For(V.Local.iCount,0,V.DataTable.Sigma.RowCount--,1)
+					Gui.Form_IssueMat/Lab.GsGridControlFeedback.SetRowAppearance("Sigma",V.Local.iCount,"backcolor","#ffffff")
+				F.Intrinsic.Control.Next(V.Local.iCount)
+				F.Data.DataTable.DeleteRow("Sigma")
+				F.Data.DataTable.AcceptChanges("Sigma")
+				F.Intrinsic.Control.ExitFor(V.Local.i)
+			F.Intrinsic.Control.Else
+				F.Intrinsic.String.Build("File: {0} cannot be moved.  No Complete Dir Exists in the SNLIC.dat file",V.Global.sFile,V.Local.sMsg)
+				F.Intrinsic.UI.Msgbox(V.Local.sMsg)
+			F.Intrinsic.Control.EndIf
+		F.Intrinsic.Control.EndIf
+	F.Intrinsic.Control.Next(V.Local.i)
+	
+	F.Intrinsic.Control.ExitSub
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.If(V.Ambient.ErrorNumber,<>,0)
+		F.Intrinsic.String.Build("Project: {0}{1}Subroutine: {2}{1}Error Occurred {3} with description {4}","GCG_5202_Issue_Mat_Lab.g2u",V.Ambient.NewLine,V.Ambient.CurrentSubroutine,V.Ambient.ErrorNumber,V.Ambient.ErrorDescription,V.Local.sError)
+		F.Intrinsic.UI.Msgbox(V.Local.sError)
+		F.Intrinsic.Control.CallSub(Form_IssueMat/Lab_Unload)
+	F.Intrinsic.Control.EndIf
+Function.Intrinsic.Control.EndTry
+Program.Sub.cmdComplete_Click.End
+
+Program.Sub.Comments.Start
+${$0$}$$}$$}$12:00:00 AM$}$False
+Program.Sub.Comments.End
